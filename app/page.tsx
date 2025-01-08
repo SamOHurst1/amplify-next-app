@@ -8,6 +8,7 @@ import "./../app/app.css";
 import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
+import TodoModal from "@/app/components/modal";
 
 Amplify.configure(outputs);
 
@@ -16,6 +17,7 @@ const client = generateClient<Schema>();
 export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const { user, signOut } = useAuthenticator();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   function listTodos() {
     client.models.Todo.observeQuery().subscribe({
@@ -27,10 +29,8 @@ export default function App() {
     listTodos();
   }, []);
 
-  function createTodo() {
-    client.models.Todo.create({
-      content: window.prompt("Todo content"),
-    });
+  function createTodo(content: string) {
+    client.models.Todo.create({ content });
   }
 
   function deleteTodo(id: string) {
@@ -39,23 +39,31 @@ export default function App() {
 
   return (
     <main>
-      {/* <h1>My todos</h1> */}
-      <h1>{user?.signInDetails?.loginId}'s todos</h1>
-
-      <button onClick={createTodo}>+ new</button>
+      <h1>{user?.signInDetails?.loginId}'s to-dos</h1>
+      <button onClick={() => setIsModalOpen(true)}>+ New</button>
       <ul>
         {todos.map((todo) => (
-          <li key={todo.id} onClick={() => deleteTodo(todo.id)}>{todo.content}</li>
+          <li key={todo.id} onClick={() => deleteTodo(todo.id)}>
+            {todo.content}
+          </li>
         ))}
       </ul>
-      <div>
-        🥳 App successfully hosted. Try creating a new todo.
+      <div className="center-text">
+        Try creating a new to-do.
         <br />
-        <a href="https://docs.amplify.aws/nextjs/start/quickstart/nextjs-app-router-client-components/">
-          Review next steps of this tutorial.
-        </a>
+        Click on a to-do to delete it.
       </div>
       <button onClick={signOut}>Sign out</button>
+
+      {isModalOpen && (
+        <TodoModal
+          onSave={(content) => {
+            createTodo(content);
+            setIsModalOpen(false);
+          }}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </main>
   );
 }
